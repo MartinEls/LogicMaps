@@ -1,0 +1,127 @@
+\documentclass[10pt]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+% mathematische Symbole und Umgebungen
+\usepackage{amsmath,amsfonts,amssymb}
+% Sweave.sty angeben, gegebenfalls mit Pfad
+\usepackage{Sweave}
+
+\usepackage{scrpage2,scrhack}
+\areaset{17cm}{26cm}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\title{R package 'LogicMaps'}
+\author{Martin Elstner}
+\date{2014--01--27}
+\maketitle
+
+\section{Basics}
+
+Package "EBImage" from BioConductor is needed since the build-in image processing capabilities in R are poor.
+<<eval=false>>=
+source("http://bioconductor.org/biocLite.R")
+biocLite("EBImage")
+@
+
+<<echo=false,results=hide>>=
+#setwd("/home/dropbox/Dropbox/Arbeit/reports/2014_logic_maps/R_functions")
+setwd("C:/Users/martin/Dropbox/Arbeit/reports/2014_logic_maps/R_functions")
+@
+
+<<>>=
+library("EBImage")
+source("LogicMaps.R")
+@
+
+We use here the EBImage routines to read and display images, and we also store values in \texttt{Image} objects provided by EBImage. Nevertheless, most functions provided by LogicMaps work also with appropriate matrices.
+
+The package provides three example files: \texttt{blue.tif}, \texttt{green.tif} and \texttt{light.tif}.
+
+<<echo=false,results=hide>>=
+#setwd("/home/dropbox/Dropbox/Arbeit/reports/2014_logic_maps/R_functions/crop")
+setwd("C:/Users/martin/Dropbox/Arbeit/reports/2014_logic_maps/R_functions/crop")
+@
+
+To read the images use
+<<>>=
+blue <- readImage(files="blue.tif")
+green <- readImage(files="green.tif")
+light <- readImage(files="light.tif")
+@
+A basic viewing environment is provided by
+<<eval=false>>=
+display(blue)
+@
+which opens the image in the standard web browser. Along with writeImage, the standard R command \texttt{image} allows the user to save modified images to files.
+
+\begin{figure}
+\label{fig:in.pic}
+\centering
+\begin{minipage}{.18\textwidth}
+	\includegraphics[width=\textwidth]{pic/light}
+\end{minipage}
+\begin{minipage}{.18\textwidth}
+	\includegraphics[width=\textwidth]{pic/blue}
+\end{minipage}
+\begin{minipage}{.18\textwidth}
+	\includegraphics[width=\textwidth]{pic/blue_gs}
+\end{minipage}
+\begin{minipage}{.18\textwidth}
+	\includegraphics[width=\textwidth]{pic/green}
+\end{minipage}
+\begin{minipage}{.18\textwidth}
+	\includegraphics[width=\textwidth]{pic/green_gs}
+\end{minipage}
+\caption{Sample image files. Left, the light microscopy image, followed by the blue fluorescence channel and the gray-scale representation and the same for the green fluorescence channel.}
+\end{figure}
+
+Since we are interested only in the intensity values for a distinct color in a single image, we can reduce them to gray scale images in the respective channel:
+<<>>=
+blue <- channel(blue, mode="blue")
+green <- channel(green, mode="green")
+@
+Such a gray scale image could be written to a jpg file of the size $400 \times 400$ with the command
+<<results=hide>>=
+jpeg(filename = "green.jpg", height = 400, width = 400)
+image(green, col = c("black", "white"), zlim = c(0,1), axes = F)
+dev.off()
+@
+
+\section{Data exploration}
+
+\subsection{Threshold determination}
+
+The function \texttt{ShowThresholdDep} allows the user to evaluate or find appropriate threshold values for image binarization.
+
+<<eval=false>>=
+ShowThresholdDep(pic, thresh = c(0, 1, 4), 
+pic.col = c("black", "white"),
+out.size = c(row = 2, col = 3, width = 1000, height = 700),
+file = "threshold.png", keep.orig = TRUE, make.hist = TRUE)
+@
+
+\begin{figure}
+\label{fig:threshold}
+\centering
+	\includegraphics[width=\textwidth]{pic/th_exam}
+\caption{Threshold determination. The function \texttt{ShowThresholdDep} generates an image matrix containing the original gray-scale image and histogram (default). With the \texttt{thresh}-option the user controls the range and the number of tested thresholds (from, to, intercepts).}
+\end{figure}
+
+
+\section{Mask images}
+
+<<>>=
+green <- green > 0.5
+blue <- blue > 0.5
+@
+
+<<>>=
+operated <- RunLogicOperation(blue, green, "inh")
+masked <- MaskRGBImage(light, operated)
+writeImage(masked, "light_masked.png")
+@
+
+\end{document}
